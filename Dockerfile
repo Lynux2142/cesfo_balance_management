@@ -24,5 +24,3 @@ USER lynux
 
 RUN python -m venv ./venv && \
 	/app/venv/bin/python -m pip install -r /app/requirements.txt
-
-CMD ["/app/venv/bin/flask", "run", "--host", "0.0.0.0"]
