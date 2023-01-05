@@ -1,12 +1,13 @@
 import requests
+from os import getenv
 from bs4 import BeautifulSoup
 from os.path import exists
 from urllib.parse import urlencode
 
 URL = "https://www.e-chargement.com/identif_badge.Asp"
-BADGE_DIV = "6891"
-BADGE_NUMBER = "18147"
-BADGE_NAME = "Guillerot Lucas"
+BADGE_DIV = getenv("BADGE_DIV")
+BADGE_NUMBER = getenv("BADGE_NUMBER")
+BADGE_NAME = getenv("BADGE_NAME")
 FILE_PATH = "/data/balance_history.txt"
 
 def main():

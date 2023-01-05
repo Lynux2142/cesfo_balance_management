@@ -1,12 +1,14 @@
 FROM python:3
 
 ARG UID=1000
+ENV BADGE_DIV=6891
+ENV BADGE_NUMBER=18147
+ENV BADGE_NAME="Guillerot Lucas"
 
 WORKDIR /app
 
-RUN apt update && \
-	apt upgrade -y && \
-	python -m pip install --upgrade pip
+RUN apt-get update && \
+	apt-get upgrade -y
 
 ADD requirements.txt /app
 ADD update_balance_history.py /app
