@@ -10,6 +10,10 @@ BADGE_NUMBER = getenv("BADGE_NUMBER")
 BADGE_NAME = getenv("BADGE_NAME")
 FILE_PATH = "/data/balance_history.txt"
 
+def estimate_meal_price(previous_balance, current_balance, previous_incoming_credit):
+    meal_price = previous_balance - (current_balance - previous_incoming_credit)
+    return (meal_price)
+
 def main():
     session = requests.Session()
 
@@ -31,16 +35,24 @@ def main():
 
     current_balance = data[1].text.replace(",", ".")
     current_date = data[2].text.split(" ")[0]
+    previous_balance = current_balance
+    incoming_credit = data[3].text.replace(",", ".")
+    previous_incoming_credit = f"0.0 \N{euro sign}"
     if exists(FILE_PATH):
         with open(FILE_PATH, "r") as f:
-            previous_balance = f.readlines()[-1].split(";")[0]
+            last_history_line = f.readlines()[-1]
+            previous_balance = last_history_line.split(";")[0]
+            previous_incoming_credit = last_history_line.split(";")[2]
     else:
         with open(FILE_PATH, "w") as f:
-            f.write("Account Balance;Meal Price;Date\n")
-        previous_balance = current_balance
-    meal_price = float(previous_balance.split(" ")[0]) - float(current_balance.split(" ")[0])
+            f.write("Account Balance;Meal Price;Incoming Credit;Date\n")
+    meal_price = estimate_meal_price(
+        float(previous_balance.split(" ")[0]),
+        float(current_balance.split(" ")[0]),
+        float(previous_incoming_credit.split(" ")[0])
+    )
     with open(FILE_PATH, "a") as f:
-        f.write(f"{current_balance};{meal_price:.2f} \N{euro sign};{current_date}\n")
+        f.write(f"{current_balance};{meal_price:.2f} \N{euro sign};{incoming_credit};{current_date}\n")
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,7 @@ init:
 	@echo "DATA=$(DATA_PATH)" >> .env
 	mkdir -p data
 	docker compose up -d
+	docker compose run -T --build update
 
 fclean:
 	docker compose down --rmi all --volumes --remove-orphans
