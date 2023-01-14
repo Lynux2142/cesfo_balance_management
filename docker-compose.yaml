@@ -15,7 +15,7 @@ services:
     restart: always
     command: "/app/venv/bin/flask run --host 0.0.0.0 -p 5000"
 
-  update:
+  update_balance_history:
     build:
       context: update_balance_history
       dockerfile: Dockerfile
@@ -28,4 +28,19 @@ services:
       - BADGE_NUMBER=${BADGE_NUMBER}
     image: cesfo_balance_management_update
     profiles:
-      - update
+      - update_balance_history
+
+  check_incoming_credit:
+    build:
+      context: check_incoming_credit
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID}
+    volumes:
+      - ${DATA}:/data
+    environment:
+      - BADGE_NAME=${BADGE_NAME}
+      - BADGE_NUMBER=${BADGE_NUMBER}
+    image: cesfo_balance_management_check_incoming_credit
+    profiles:
+      - check_incoming_credit
