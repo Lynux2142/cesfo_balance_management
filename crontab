@@ -1,0 +1,2 @@
+0 9 * * * /usr/bin/docker compose -f $HOME/Documents/cesfo_balance_management/docker-compose.yaml run --rm update_balance_history
+0 6 * * * /usr/bin/docker compose -f $HOME/Documents/cesfo_balance_management/docker-compose.yaml run --rm check_incoming_credit
