@@ -3,6 +3,7 @@ from os import getenv
 from bs4 import BeautifulSoup
 from os.path import exists
 from urllib.parse import urlencode
+from datetime import datetime, timedelta
 
 URL = "https://www.e-chargement.com/identif_badge.Asp"
 BADGE_DIV = getenv("BADGE_DIV")
@@ -34,7 +35,9 @@ def main():
     data = parsed_html.find_all("td", {"class": "bold"})
 
     current_balance = data[1].text.replace(",", ".")
-    current_date = data[2].text.split(" ")[0]
+    current_date_obj = datetime.strptime(data[2].text.split(" ")[0], '%d/%m/%y')
+    current_date_obj -= timedelta(days=1)
+    current_date_str = current_date_obj.strftime('%d/%m/%y')
     previous_balance = current_balance
     incoming_credit = data[3].text.replace(",", ".")
     previous_incoming_credit = f"0.0 \N{euro sign}"
@@ -52,7 +55,7 @@ def main():
         float(previous_incoming_credit.split(" ")[0])
     )
     with open(FILE_PATH, "a") as f:
-        f.write(f"{current_balance};{meal_price:.2f} \N{euro sign};{incoming_credit};{current_date}\n")
+        f.write(f"{current_balance};{meal_price:.2f} \N{euro sign};{incoming_credit};{current_date_str}\n")
 
 if __name__ == "__main__":
     main()
