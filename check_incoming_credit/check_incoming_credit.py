@@ -1,4 +1,3 @@
-from urllib.parse import urlencode
 from os import getenv
 from bs4 import BeautifulSoup
 import requests
@@ -18,12 +17,8 @@ def main():
         "badge_nom": BADGE_NAME,
     }
 
-    headers = {
-        "Content-type": "application/x-www-form-urlencoded"
-    }
-
-    response = session.post(URL, headers=headers, data=urlencode(data), allow_redirects=True)
-    response.encoding = response.apparent_encoding
+    response = session.post(URL, data=data, allow_redirects=True)
+    response.encoding = "utf-8"
 
     parsed_html = BeautifulSoup(response.text, "html.parser")
     data = parsed_html.find_all("td", {"class": "bold"})

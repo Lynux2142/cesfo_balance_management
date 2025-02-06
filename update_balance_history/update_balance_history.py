@@ -2,7 +2,6 @@ import requests
 from os import getenv
 from bs4 import BeautifulSoup
 from os.path import exists
-from urllib.parse import urlencode
 from datetime import datetime, timedelta
 
 URL = "https://www.e-chargement.com/identif_badge.Asp"
@@ -10,6 +9,7 @@ BADGE_DIV = getenv("BADGE_DIV")
 BADGE_NUMBER = getenv("BADGE_NUMBER")
 BADGE_NAME = getenv("BADGE_NAME")
 FILE_PATH = "/data/balance_history.txt"
+
 
 def estimate_meal_price(previous_balance, current_balance, previous_incoming_credit):
     meal_price = previous_balance - (current_balance - previous_incoming_credit)
@@ -24,12 +24,8 @@ def main():
         "badge_nom": BADGE_NAME,
     }
 
-    headers = {
-        "Content-type": "application/x-www-form-urlencoded"
-    }
-
-    response = session.post(URL, headers=headers, data=urlencode(data), allow_redirects=True)
-    response.encoding = response.apparent_encoding
+    response = session.post(URL, data=data, allow_redirects=True)
+    response.encoding = "utf-8"
 
     parsed_html = BeautifulSoup(response.text, "html.parser")
     data = parsed_html.find_all("td", {"class": "bold"})
