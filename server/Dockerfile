@@ -1,22 +1,24 @@
-FROM python:3
+FROM python:3.11-alpine
 
 ARG UID=1000
-
 WORKDIR /app
 
-RUN apt-get update && \
-	apt-get upgrade -y
-
-ADD requirements.txt /app
-ADD server.py /app
-
-ENV FLASK_APP=/app/server.py
+ENV FLASK_APP=server.py \
+    PATH="/home/lynux/.local/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
 RUN mkdir /data && \
-	useradd -m lynux -u $UID -g 0 && \
-	chown -R lynux:0 /app /data
+    adduser -u $UID -G root -D lynux && \
+    chown -R lynux:root /app /data
 
 USER lynux
 
-RUN python -m venv ./venv && \
-	/app/venv/bin/python -m pip install -r /app/requirements.txt
+COPY --chown=lynux:root requirements.txt .
+
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+COPY --chown=lynux:root server.py .
+
+EXPOSE 5000
+
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]

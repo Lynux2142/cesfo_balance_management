@@ -31,7 +31,8 @@ def main():
     data = parsed_html.find_all("td", {"class": "bold"})
 
     current_balance = data[1].text.replace(",", ".")
-    current_date_obj = datetime.strptime(data[2].text.split(" ")[0], '%d/%m/%y')
+    #current_date_obj = datetime.strptime(data[2].text.split(" ")[0], '%d/%m/%y')
+    current_date_obj = datetime.now()
     current_date_obj -= timedelta(days=1)
     current_date_str = current_date_obj.strftime('%d/%m/%y')
     previous_balance = current_balance
