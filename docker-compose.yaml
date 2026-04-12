@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         UID: ${UID}
+    container_name: cesfo_balance_management_server
     volumes:
       - ${DATA}:/data
     ports:
@@ -18,6 +19,7 @@ services:
       dockerfile: Dockerfile
       args:
         UID: ${UID}
+    container_name: update_balance_history
     volumes:
       - ${DATA}:/data
     environment:
@@ -33,6 +35,7 @@ services:
       dockerfile: Dockerfile
       args:
         UID: ${UID}
+    container_name: check_incoming_credit
     volumes:
       - ${DATA}:/data
     environment:
