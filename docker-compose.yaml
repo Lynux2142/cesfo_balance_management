@@ -10,7 +10,7 @@ services:
       - ${DATA}:/data
     ports:
       - 5000:5000
-    image: cesfo_balance_management_server
+    image: lguiller/cesfo_balance_management_server
     restart: always
 
   update_balance_history:
@@ -25,7 +25,7 @@ services:
     environment:
       - BADGE_NAME=${BADGE_NAME}
       - BADGE_NUMBER=${BADGE_NUMBER}
-    image: cesfo_balance_management_update
+    image: lguiller/cesfo_balance_management_update
     profiles:
       - update_balance_history
 
@@ -41,6 +41,6 @@ services:
     environment:
       - BADGE_NAME=${BADGE_NAME}
       - BADGE_NUMBER=${BADGE_NUMBER}
-    image: cesfo_balance_management_check_incoming_credit
+    image: lguiller/cesfo_balance_management_check_incoming_credit
     profiles:
       - check_incoming_credit
