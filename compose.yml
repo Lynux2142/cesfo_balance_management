@@ -1,0 +1,28 @@
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+      - ./init-db.js:/docker-entrypoint-initdb.d/init-db.js
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lguiller
+      MONGO_INITDB_ROOT_PASSWORD: Tekken18
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://lguiller:Tekken18@mongo:27017/
+      ME_CONFIG_BASICAUTH_ENABLED: true
+      ME_CONFIG_BASICAUTH_USERNAME: lguiller
+      ME_CONFIG_BASICAUTH_PASSWORD: Tekken18
+
+volumes:
+  mongo-data:
+  mongo-config:

@@ -1,0 +1,17 @@
+[package]
+name = "cesfo_balance_management"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+chrono = "0.4"
+futures = "0.3"
+mongodb = "3.10"
+reqwest = { version = "0.12", features = ["json", "cookies"] }
+scraper = "0.29"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tera = { version = "2.4", features = ["glob_fs"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.7", features = ["fs"] }
