@@ -122,6 +122,7 @@ impl CesfoClient {
         println!("Pending Payment   : {}", raw_pending_payment);
 
         Ok(AccountInfo {
+            badge_number: String::new(),
             balance,
             balance_date,
             paid_payment,

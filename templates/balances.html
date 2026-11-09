@@ -8,7 +8,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>CESFO Balance History</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Welcome, {{ profile.first_name }} {{ profile.last_name }}</h1>
+            <a href="/" style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">Logout</a>
+        </div>
         <div class="table-container">
             <table>
                 <thead>
@@ -22,7 +25,7 @@
                 </thead>
                 <tbody>
                     {% if records | length == 0 %}
-                    <tr><td colspan="5" style="text-align:center; color:#777;">No records found in database.</td></tr>
+                    <tr><td colspan="5" style="text-align:center; color:#777;">No records found in database. Run scraper for your badge.</td></tr>
                     {% else %}
                         {% for r in records %}
                         <tr>
