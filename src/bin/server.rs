@@ -7,6 +7,7 @@ use axum::{
 use cesfo_balance_management::{DatabaseService, models::AccountProfile};
 use serde::Deserialize;
 use std::sync::Arc;
+use std::env;
 use tera::Tera;
 use tower_http::services::ServeDir;
 
@@ -38,10 +39,13 @@ struct BalanceQuery {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting CESFO Multi-Account Web Server...");
 
-    let db_service = DatabaseService::new(
-        "mongodb://lguiller:Tekken18@localhost:27017/",
-        "cesfo_db",
-    ).await?;
+    let mongo_url = env::var("MONGODB_URL").expect("MANDATORY ERROR: MONGODB_URL is not set.");
+    let mongo_port = env::var("MONGODB_PORT").expect("MANDATORY ERROR: MONGODB_PORT is not set.");
+    let mongo_user = env::var("MONGODB_USER").expect("MANDATORY ERROR: MONGODB_USER is not set.");
+    let mongo_password = env::var("MONGODB_PASSWORD").expect("MANDATORY ERROR: MONGODB_PASSWORD is not set.");
+
+    let mongo_uri = format!("mongodb://{}:{}@{}:{}", mongo_user, mongo_password, mongo_url, mongo_port);
+    let db_service = DatabaseService::new(&mongo_uri, "cesfo_db").await?;
     println!("Connected to MongoDB and indexes verified successfully.");
 
     let mut templates = Tera::default();

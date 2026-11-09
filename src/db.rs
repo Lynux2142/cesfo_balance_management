@@ -54,6 +54,18 @@ impl DatabaseService {
         Ok(latest)
     }
 
+    pub async fn get_all_accounts(&self) -> Result<Vec<AccountProfile>, Box<dyn std::error::Error>> {
+        use futures::stream::StreamExt;
+        let mut cursor = self.accounts_collection.find(doc! {}).await?;
+        let mut accounts = Vec::new();
+        while let Some(result) = cursor.next().await {
+            if let Ok(account) = result {
+                accounts.push(account);
+            }
+        }
+        Ok(accounts)
+    }
+
     pub async fn get_latest_n_account_infos(&self, badge_number: &str, limit: i64) -> Result<Vec<AccountInfo>, Box<dyn std::error::Error>> {
         use futures::stream::StreamExt;
         
