@@ -32,7 +32,7 @@ impl CesfoClient {
     }
 
     pub async fn authenticate(&self, creds: &Credentials) -> Result<String, Box<dyn std::error::Error>> {
-        println!("Authenticating ...");
+        println!("Authenticating to CESFO with badge number: {}...", creds.badge_number);
 
         let _ = self.client.get(&format!("{}/default.asp", self.base_url))
             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:159.0) Gecko/20100101 Firefox/159.0")
