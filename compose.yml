@@ -1,6 +1,7 @@
 services:
   mongo:
     image: mongo
+    container_name: cesfo_mongo
     restart: always
     ports:
       - 27017:27017
@@ -9,19 +10,61 @@ services:
       - mongo-config:/data/configdb
       - ./init-db.js:/docker-entrypoint-initdb.d/init-db.js
     environment:
-      MONGO_INITDB_ROOT_USERNAME: lguiller
-      MONGO_INITDB_ROOT_PASSWORD: Tekken18
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
 
   mongo-express:
     image: mongo-express
+    container_name: cesfo_mongo_express
     restart: always
     ports:
       - 8081:8081
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://lguiller:Tekken18@mongo:27017/
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongo:27017/
       ME_CONFIG_BASICAUTH_ENABLED: true
-      ME_CONFIG_BASICAUTH_USERNAME: lguiller
-      ME_CONFIG_BASICAUTH_PASSWORD: Tekken18
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGODB_USER}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGODB_PASSWORD}
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: lguiller/cesfo-web-server:latest
+    container_name: cesfo_web_server
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_URL: ${MONGODB_URL}
+      MONGODB_PORT: ${MONGODB_PORT}
+      MONGODB_USER: ${MONGODB_USER}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+    command: ["/app/server"]
+    depends_on:
+      - mongo
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    image: lguiller/cesfo-scraper-worker:latest
+    container_name: cesfo_scraper_worker
+    restart: always
+    environment:
+      MONGODB_URL: ${MONGODB_URL}
+      MONGODB_PORT: ${MONGODB_PORT}
+      MONGODB_USER: ${MONGODB_USER}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      CRON_SCHEDULE: ${CRON_SCHEDULE}
+    command: ["/app/scraper"]
+    depends_on:
+      - mongo
 
 volumes:
   mongo-data:
