@@ -8,9 +8,17 @@
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="header-actions">
             <h1>Welcome, {{ profile.first_name }} {{ profile.last_name }}</h1>
-            <a href="/" style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">Logout</a>
+            <div class="actions-group">
+                <form action="https://www.e-chargement.com/identif_badge.Asp" method="POST" target="_blank" style="margin: 0;">
+                    <input type="hidden" name="badge_div" value="{{ profile.badge_div }}">
+                    <input type="hidden" name="badge_number" value="{{ profile.badge_number }}">
+                    <input type="hidden" name="badge_nom" value="{{ profile.last_name }} {{ profile.first_name }}">
+                    <button type="submit" class="btn btn-primary">CESFO</button>
+                </form>
+                <a href="/" class="btn btn-danger">Logout</a>
+            </div>
         </div>
         <div class="table-container">
             <table>
