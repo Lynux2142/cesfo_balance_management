@@ -1,7 +1,7 @@
 services:
-  mongo:
+  mongodb:
     image: mongo
-    container_name: cesfo_mongo
+    container_name: mongodb
     restart: always
     ports:
       - 27017:27017
@@ -15,25 +15,19 @@ services:
 
   mongo-express:
     image: mongo-express
-    container_name: cesfo_mongo_express
+    container_name: mongo-express
     restart: always
     ports:
       - 8081:8081
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongo:27017/
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb:27017/
       ME_CONFIG_BASICAUTH_ENABLED: true
       ME_CONFIG_BASICAUTH_USERNAME: ${MONGODB_USER}
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGODB_PASSWORD}
 
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
-    image: lguiller/cesfo-web-server:latest
-    container_name: cesfo_web_server
+  web-server:
+    image: lguiller/cesfo-balance-manager:latest
+    container_name: cesfo-balance-manager
     restart: always
     ports:
       - "3000:3000"
@@ -42,29 +36,6 @@ services:
       MONGODB_PORT: ${MONGODB_PORT}
       MONGODB_USER: ${MONGODB_USER}
       MONGODB_PASSWORD: ${MONGODB_PASSWORD}
-    command: ["/app/server"]
-    depends_on:
-      - mongo
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
-    image: lguiller/cesfo-scraper-worker:latest
-    container_name: cesfo_scraper_worker
-    restart: always
-    environment:
-      MONGODB_URL: ${MONGODB_URL}
-      MONGODB_PORT: ${MONGODB_PORT}
-      MONGODB_USER: ${MONGODB_USER}
-      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
-      CRON_SCHEDULE: ${CRON_SCHEDULE}
-    command: ["/app/scraper"]
-    depends_on:
-      - mongo
 
 volumes:
   mongo-data:
