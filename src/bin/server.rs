@@ -184,6 +184,7 @@ async fn show_register(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     }
 }
 
+#[axum::debug_handler]
 async fn handle_register(
     State(state): State<Arc<AppState>>,
     Form(form): Form<RegisterForm>,
@@ -195,19 +196,46 @@ async fn handle_register(
         last_name: form.last_name.clone(),
     };
 
-    match state.db_service.create_account(profile).await {
-        Ok(_) => {
-            Redirect::to(&format!("/balances?badge={}", form.badge_number)).into_response()
-        }
-        Err(_) => {
-            let mut ctx = tera::Context::new();
-            ctx.insert("error", "Registration failed. Badge number might already exist.");
-            match state.templates.render("register.html", &ctx) {
-                Ok(html) => Html(html).into_response(),
-                Err(e) => Html(format!("Template Error: {}", e)).into_response(),
+    if let Err(e) = state.db_service.create_account(profile).await {
+        println!("[REGISTER FAILED] Failed registration for badge {}: {}", form.badge_number, e);
+        let mut ctx = tera::Context::new();
+        ctx.insert("error", "Registration failed. Badge number might already exist.");
+        return match state.templates.render("register.html", &ctx) {
+            Ok(html) => Html(html).into_response(),
+            Err(_) => Html(String::from("Template Error")).into_response(),
+        };
+    }
+
+    println!("[REGISTER SUCCESS] New account created for '{} {}' (Badge: {})", form.first_name, form.last_name, form.badge_number);
+
+    let creds = Credentials {
+        badge_div: form.badge_div.clone(),
+        badge_number: form.badge_number.clone(),
+        badge_nom: format!("{} {}", form.last_name, form.first_name).to_lowercase(),
+    };
+
+    let scrape_outcome = async {
+        let client = CesfoClient::new().map_err(|e| e.to_string())?;
+        let html_body = client.authenticate(&creds).await.map_err(|e| e.to_string())?;
+        let mut info = CesfoClient::parse_account_info(&html_body).map_err(|e| e.to_string())?;
+        info.badge_number = form.badge_number.clone();
+        Ok::<_, String>(info)
+    }.await;
+
+    match scrape_outcome {
+        Ok(info) => {
+            if let Err(e) = state.db_service.save_account_info(info).await {
+                eprintln!("[REGISTER SCRAPE ERROR] Failed to save initial balance: {}", e);
+            } else {
+                println!("[REGISTER SCRAPE SUCCESS] Initial balance saved.");
             }
         }
+        Err(e) => {
+            eprintln!("[REGISTER SCRAPE ERROR] {}", e);
+        }
     }
+
+    Redirect::to(&format!("/balances?badge={}", form.badge_number)).into_response()
 }
 
 async fn show_balances(
