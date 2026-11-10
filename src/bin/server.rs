@@ -4,11 +4,11 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use cesfo_balance_management::{DatabaseService, models::AccountProfile};
+use cesfo_balance_management::{DatabaseService, CesfoClient, Credentials, models::AccountProfile};
 use serde::Deserialize;
-use std::sync::Arc;
-use std::env;
+use std::{env, sync::Arc};
 use tera::Tera;
+use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::services::ServeDir;
 
 struct AppState {
@@ -37,16 +37,88 @@ struct BalanceQuery {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting CESFO Multi-Account Web Server...");
+    println!("Starting CESFO Web Server & Scheduler...");
 
     let mongo_url = env::var("MONGODB_URL").expect("MANDATORY ERROR: MONGODB_URL is not set.");
     let mongo_port = env::var("MONGODB_PORT").expect("MANDATORY ERROR: MONGODB_PORT is not set.");
     let mongo_user = env::var("MONGODB_USER").expect("MANDATORY ERROR: MONGODB_USER is not set.");
     let mongo_password = env::var("MONGODB_PASSWORD").expect("MANDATORY ERROR: MONGODB_PASSWORD is not set.");
+    let cron_schedule = env::var("CRON_SCHEDULE").expect("MANDATORY ERROR: CRON_SCHEDULE is not set.");
 
     let mongo_uri = format!("mongodb://{}:{}@{}:{}", mongo_user, mongo_password, mongo_url, mongo_port);
     let db_service = DatabaseService::new(&mongo_uri, "cesfo_db").await?;
-    println!("Connected to MongoDB and indexes verified successfully.");
+    println!("Connected to MongoDB successfully.");
+
+    // Setup background cron scheduler looping through all accounts
+    let scheduler = JobScheduler::new().await?;
+    let db_clone = db_service.clone();
+
+    scheduler.add(
+        Job::new_async(&cron_schedule, move |_uuid, _lock| {
+            let db = db_clone.clone();
+            Box::pin(async move {
+                println!("[CRON] Triggered automated scrape cycle for all registered accounts...");
+
+                let accounts = match db.get_all_accounts().await.map_err(|e| e.to_string()) {
+                    Ok(accs) => accs,
+                    Err(e) => {
+                        eprintln!("[CRON ERROR] Failed to fetch accounts from database: {}", e);
+                        return;
+                    }
+                };
+
+                if accounts.is_empty() {
+                    println!("[CRON] No accounts registered in the database yet.");
+                    return;
+                }
+
+                for acc in accounts {
+                    println!("[CRON] Scraping account: {} {} (Badge: {})", acc.first_name, acc.last_name, acc.badge_number);
+
+                    let creds = Credentials {
+                        badge_div: acc.badge_div.clone(),
+                        badge_number: acc.badge_number.clone(),
+                        badge_nom: format!("{} {}", acc.last_name, acc.first_name).to_lowercase(),
+                    };
+
+                    let client = match CesfoClient::new() {
+                        Ok(c) => c,
+                        Err(e) => {
+                            eprintln!("[CRON ERROR] Failed to create CESFO client: {}", e);
+                            continue;
+                        }
+                    };
+
+                    let html_body = match client.authenticate(&creds).await {
+                        Ok(h) => h,
+                        Err(e) => {
+                            eprintln!("[CRON ERROR] Authentication failed for badge {}: {}", creds.badge_number, e);
+                            continue;
+                        }
+                    };
+
+                    let mut info = match CesfoClient::parse_account_info(&html_body) {
+                        Ok(i) => i,
+                        Err(e) => {
+                            eprintln!("[CRON ERROR] Failed to parse HTML for badge {}: {}", creds.badge_number, e);
+                            continue;
+                        }
+                    };
+
+                    info.badge_number = creds.badge_number.clone();
+
+                    if let Err(e) = db.save_account_info(info).await.map_err(|e| e.to_string()) {
+                        eprintln!("[CRON ERROR] Failed to save info for badge {}: {}", creds.badge_number, e);
+                    } else {
+                        println!("[CRON SUCCESS] Updated balance for badge {}", creds.badge_number);
+                    }
+                }
+            })
+        })?
+    ).await?;
+
+    scheduler.start().await?;
+    println!("[SCHEDULER] Cron loop is active with schedule: '{}'", cron_schedule);
 
     let mut templates = Tera::default();
     templates.load_from_glob("templates/**/*.html")?;
@@ -83,22 +155,19 @@ async fn handle_login(
 ) -> impl IntoResponse {
     match state.db_service.get_account_by_name(&form.first_name, &form.last_name).await {
         Ok(Some(account)) => {
-            println!("User '{} {}' logged in (Badge: {})", account.first_name, account.last_name, account.badge_number);
             Redirect::to(&format!("/balances?badge={}", account.badge_number)).into_response()
         }
         Ok(None) => {
-            println!("[ERROR] Attempted login for unknown user: '{} {}'", form.first_name, form.last_name);
             let mut ctx = tera::Context::new();
-            ctx.insert("error", "Account not found. Please check your name or create an account.");
+            ctx.insert("error", "Account not found.");
             match state.templates.render("login.html", &ctx) {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => Html(format!("Template Error: {}", e)).into_response(),
             }
         }
-        Err(e) => {
-            eprintln!("[ERROR] Database error during login for '{} {}': {}", form.first_name, form.last_name, e);
+        Err(_) => {
             let mut ctx = tera::Context::new();
-            ctx.insert("error", "An internal error occurred. Please try again later.");
+            ctx.insert("error", "An internal error occurred.");
             match state.templates.render("login.html", &ctx) {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => Html(format!("Template Error: {}", e)).into_response(),
@@ -128,11 +197,9 @@ async fn handle_register(
 
     match state.db_service.create_account(profile).await {
         Ok(_) => {
-            println!("New account created for '{} {}' (Badge: {}, Div: {})", form.first_name, form.last_name, form.badge_number, form.badge_div);
             Redirect::to(&format!("/balances?badge={}", form.badge_number)).into_response()
         }
-        Err(e) => {
-            println!("[ERROR] Failed registration attempt: first name: {} - last name: {} - badge {}: {}", form.first_name, form.last_name, form.badge_number, e);
+        Err(_) => {
             let mut ctx = tera::Context::new();
             ctx.insert("error", "Registration failed. Badge number might already exist.");
             match state.templates.render("register.html", &ctx) {
@@ -147,8 +214,6 @@ async fn show_balances(
     State(state): State<Arc<AppState>>,
     Query(query): Query<BalanceQuery>,
 ) -> impl IntoResponse {
-    println!("Balance history accessed for badge: {}", query.badge);
-
     let records = match state.db_service.get_latest_n_account_infos(&query.badge, 20).await {
         Ok(recs) => recs,
         Err(_) => vec![],
