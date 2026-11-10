@@ -36,6 +36,7 @@ services:
       MONGODB_PORT: ${MONGODB_PORT}
       MONGODB_USER: ${MONGODB_USER}
       MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      CRON_SCHEDULE: ${CRON_SCHEDULE}
 
 volumes:
   mongo-data:
