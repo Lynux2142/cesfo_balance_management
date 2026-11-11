@@ -5,7 +5,7 @@ use axum::{
     Form, Router,
 };
 use cesfo_balance_management::{DatabaseService, CesfoClient, Credentials, models::AccountProfile};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::{env, sync::Arc};
 use tera::Tera;
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -16,22 +16,37 @@ struct AppState {
     templates: Tera,
 }
 
+fn deserialize_trimmed<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(s.trim().to_string())
+}
+
 #[derive(Deserialize)]
 struct LoginForm {
+    #[serde(deserialize_with = "deserialize_trimmed")]
     first_name: String,
+    #[serde(deserialize_with = "deserialize_trimmed")]
     last_name: String,
 }
 
 #[derive(Deserialize)]
 struct RegisterForm {
+    #[serde(deserialize_with = "deserialize_trimmed")]
     badge_div: String,
+    #[serde(deserialize_with = "deserialize_trimmed")]
     badge_number: String,
+    #[serde(deserialize_with = "deserialize_trimmed")]
     first_name: String,
+    #[serde(deserialize_with = "deserialize_trimmed")]
     last_name: String,
 }
 
 #[derive(Deserialize)]
 struct BalanceQuery {
+    #[serde(deserialize_with = "deserialize_trimmed")]
     badge: String,
 }
 
@@ -49,7 +64,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_service = DatabaseService::new(&mongo_uri, "cesfo_db").await?;
     println!("Connected to MongoDB successfully.");
 
-    // Setup background cron scheduler looping through all accounts
     let scheduler = JobScheduler::new().await?;
     let db_clone = db_service.clone();
 
@@ -131,6 +145,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/register", get(show_register))
         .route("/register", post(handle_register))
         .route("/balances", get(show_balances))
+        .route("/clear-data", get(clear_data))
+        .route("/delete-account", get(delete_account))
         .nest_service("/static", ServeDir::new("static"))
         .with_state(state);
 
@@ -265,4 +281,30 @@ async fn show_balances(
         Ok(html) => Html(html).into_response(),
         Err(e) => Html(format!("Template Error: {}", e)).into_response(),
     }
+}
+
+#[axum::debug_handler]
+async fn clear_data(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<BalanceQuery>,
+) -> impl IntoResponse {
+    if let Err(e) = state.db_service.clear_account_infos(&query.badge).await {
+        eprintln!("[CLEAR ERROR] Failed to clear history for badge {}: {}", query.badge, e);
+    } else {
+        println!("[CLEAR SUCCESS] Cleared history for badge {}", query.badge);
+    }
+    Redirect::to(&format!("/balances?badge={}", query.badge)).into_response()
+}
+
+#[axum::debug_handler]
+async fn delete_account(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<BalanceQuery>,
+) -> impl IntoResponse {
+    if let Err(e) = state.db_service.delete_account(&query.badge).await {
+        eprintln!("[DELETE ERROR] Failed to delete account for badge {}: {}", query.badge, e);
+    } else {
+        println!("[DELETE SUCCESS] Deleted account for badge {}", query.badge);
+    }
+    Redirect::to("/").into_response()
 }

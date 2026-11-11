@@ -79,11 +79,19 @@ tr:hover {
     align-items: center;
 }
 
+.actions-group form {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 7px 14px;
+    height: 36px;
+    padding: 0 14px;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
@@ -91,6 +99,7 @@ tr:hover {
     border: none;
     cursor: pointer;
     font-family: inherit;
+    box-sizing: border-box;
     transition: background 0.2s ease;
 }
 
@@ -103,11 +112,79 @@ tr:hover {
     background: #1d4ed8;
 }
 
-.btn-danger {
-    background: #ef4444;
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-secondary {
+    background: #475569;
     color: white;
 }
 
-.btn-danger:hover {
-    background: #dc2626;
+.btn-secondary:hover {
+    background: #334155;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #334155;
+    padding: 10px 14px;
+    text-decoration: none;
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f5f9;
+}
+
+.dropdown-content a.danger-text {
+    color: #ef4444;
+}
+
+.dropdown-content a.danger-text:hover {
+    background-color: #fee2e2;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 0;
+}
+
+.hamburger-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 16px;
+    height: 11px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.hamburger-icon span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: white;
+    border-radius: 2px;
 }

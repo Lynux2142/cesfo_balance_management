@@ -32,7 +32,7 @@ impl CesfoClient {
     }
 
     pub async fn authenticate(&self, creds: &Credentials) -> Result<String, Box<dyn std::error::Error>> {
-        println!("Authenticating to CESFO with badge number: {}...", creds.badge_number);
+        println!("[CLIENT] Authenticating to CESFO with badge number: {}...", creds.badge_number);
 
         let _ = self.client.get(&format!("{}/default.asp", self.base_url))
             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:159.0) Gecko/20100101 Firefox/159.0")
@@ -55,13 +55,13 @@ impl CesfoClient {
             .await?;
 
         let html_body = response.text().await?;
-        println!("Successfully authenticated. HTML response received.");
+        println!("[CLIENT] Successfully authenticated. HTML response received.");
 
         Ok(html_body)
     }
 
     pub fn parse_account_info(html_content: &str) -> Result<AccountInfo, Box<dyn std::error::Error>> {
-        println!("Parsing account info ...");
+        println!("[CLIENT] Parsing account info ...");
         let document = Html::parse_document(html_content);
         
         let mut raw_balance = String::from("N/A");
@@ -115,7 +115,7 @@ impl CesfoClient {
             Err(_) => raw_balance_date,
         };
 
-        println!("Parsed account info:");
+        println!("[CLIENT] Parsed account info:");
         println!("Balance           : {}", raw_balance);
         println!("Balance Date      : {}", balance_date);
         println!("Paid Payment      : {}", raw_paid_payment);

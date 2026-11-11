@@ -90,7 +90,7 @@ impl DatabaseService {
     }
 
     pub async fn save_account_info(&self, mut info: AccountInfo) -> Result<(), Box<dyn std::error::Error>> {
-        println!("Saving account info into MongoDB...");
+        println!("[DB] Saving account info into MongoDB...");
         let previous_record = self.get_latest_account_info(&info.badge_number).await?;
 
         let (previous_balance, previous_pending) = match &previous_record {
@@ -119,7 +119,24 @@ impl DatabaseService {
         let options = UpdateOptions::builder().upsert(true).build();
         self.balances_collection.update_one(filter, update).with_options(options).await?;
         
-        println!("Successfully saved account info and synchronized database!");
+        println!("[DB] Successfully saved account info and synchronized database!");
+        Ok(())
+    }
+
+    pub async fn clear_account_infos(&self, badge_number: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let filter = doc! { "badge_number": badge_number };
+        self.balances_collection.delete_many(filter).await?;
+        println!("[DB] Cleared all balance history records for badge {}", badge_number);
+        Ok(())
+    }
+
+    pub async fn delete_account(&self, badge_number: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let account_filter = doc! { "badge_number": badge_number };
+        self.accounts_collection.delete_one(account_filter).await?;
+
+        self.clear_account_infos(badge_number).await?;
+
+        println!("[DB] Successfully deleted account and history for badge {}", badge_number);
         Ok(())
     }
 }

@@ -17,9 +17,37 @@
                     <input type="hidden" name="badge_nom" value="{{ profile.last_name }} {{ profile.first_name }}">
                     <button type="submit" class="btn btn-primary">CESFO</button>
                 </form>
-                <a href="/" class="btn btn-danger">Logout</a>
+
+                <div class="dropdown">
+                    <button onclick="toggleMenu(event)" class="btn btn-secondary">
+                        Menu ▾
+                    </button>
+                    <div id="actionMenu" class="dropdown-content">
+                        <a href="/clear-data?badge={{ profile.badge_number }}" onclick="return confirm('Are you sure you want to clear your balance history?');">🧹 Clear Data</a>
+                        <a href="/delete-account?badge={{ profile.badge_number }}" class="danger-text" onclick="return confirm('⚠️ Are you sure you want to delete your account completely?');">🗑️ Delete Account</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="/">🚪 Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <script>
+        function toggleMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('actionMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.btn-secondary')) {
+                const menu = document.getElementById('actionMenu');
+                if (menu && menu.style.display === 'block') {
+                    menu.style.display = 'none';
+                }
+            }
+        }
+        </script>
         <div class="table-container">
             <table>
                 <thead>
