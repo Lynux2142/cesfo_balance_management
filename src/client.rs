@@ -55,8 +55,28 @@ impl CesfoClient {
             .await?;
 
         let html_body = response.text().await?;
-        println!("[CLIENT] Successfully authenticated. HTML response received.");
+        let document = Html::parse_document(&html_body);
+        let left_selector = Selector::parse("div#left").unwrap();
 
+        let mut verified = false;
+        if let Some(left_elem) = document.select(&left_selector).next() {
+            let left_text = left_elem.text().collect::<String>().to_lowercase();
+            let expected_name = creds.badge_nom.to_lowercase();
+            let expected_badge = &creds.badge_number;
+
+            if left_text.contains(&expected_name) && left_text.contains(expected_badge) {
+                verified = true;
+            }
+        }
+
+        if !verified {
+            return Err(format!(
+                "Authentication failed for badge number: {} and name: {}.",
+                creds.badge_number, creds.badge_nom
+            ).into());
+        }
+
+        println!("[CLIENT] Authentication successful for badge number: {}.", creds.badge_number);
         Ok(html_body)
     }
 

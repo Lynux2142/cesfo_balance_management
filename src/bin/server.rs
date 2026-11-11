@@ -205,25 +205,6 @@ async fn handle_register(
     State(state): State<Arc<AppState>>,
     Form(form): Form<RegisterForm>,
 ) -> impl IntoResponse {
-    let profile = AccountProfile {
-        badge_div: form.badge_div.clone(),
-        badge_number: form.badge_number.clone(),
-        first_name: form.first_name.clone(),
-        last_name: form.last_name.clone(),
-    };
-
-    if let Err(e) = state.db_service.create_account(profile).await {
-        println!("[REGISTER FAILED] Failed registration for badge {}: {}", form.badge_number, e);
-        let mut ctx = tera::Context::new();
-        ctx.insert("error", "Registration failed. Badge number might already exist.");
-        return match state.templates.render("register.html", &ctx) {
-            Ok(html) => Html(html).into_response(),
-            Err(_) => Html(String::from("Template Error")).into_response(),
-        };
-    }
-
-    println!("[REGISTER SUCCESS] New account created for '{} {}' (Badge: {})", form.first_name, form.last_name, form.badge_number);
-
     let creds = Credentials {
         badge_div: form.badge_div.clone(),
         badge_number: form.badge_number.clone(),
@@ -238,17 +219,40 @@ async fn handle_register(
         Ok::<_, String>(info)
     }.await;
 
-    match scrape_outcome {
-        Ok(info) => {
-            if let Err(e) = state.db_service.save_account_info(info).await {
-                eprintln!("[REGISTER SCRAPE ERROR] Failed to save initial balance: {}", e);
-            } else {
-                println!("[REGISTER SCRAPE SUCCESS] Initial balance saved.");
-            }
-        }
+    let initial_info = match scrape_outcome {
+        Ok(info) => info,
         Err(e) => {
-            eprintln!("[REGISTER SCRAPE ERROR] {}", e);
+            eprintln!("[REGISTER FAILED] Scraping error: {}", e);
+            let mut ctx = tera::Context::new();
+            ctx.insert("error", "Connection to CESFO failed. Please check your badge details and try again.");
+            return match state.templates.render("register.html", &ctx) {
+                Ok(html) => Html(html).into_response(),
+                Err(_) => Html(String::from("Template Error")).into_response(),
+            };
         }
+    };
+
+    let profile = AccountProfile {
+        badge_div: form.badge_div.clone(),
+        badge_number: form.badge_number.clone(),
+        first_name: form.first_name.clone(),
+        last_name: form.last_name.clone(),
+    };
+
+    if let Err(e) = state.db_service.create_account(profile).await {
+        println!("[REGISTER FAILED] Database insert error for badge {}: {}", form.badge_number, e);
+        let mut ctx = tera::Context::new();
+        ctx.insert("error", "Registration failed. Badge number might already exist locally.");
+        return match state.templates.render("register.html", &ctx) {
+            Ok(html) => Html(html).into_response(),
+            Err(_) => Html(String::from("Template Error")).into_response(),
+        };
+    }
+
+    println!("[REGISTER SUCCESS] Verified and created account for '{} {}' (Badge: {})", form.first_name, form.last_name, form.badge_number);
+
+    if let Err(e) = state.db_service.save_account_info(initial_info).await {
+        eprintln!("[REGISTER SCRAPE ERROR] Failed to save initial balance: {}", e);
     }
 
     Redirect::to(&format!("/balances?badge={}", form.badge_number)).into_response()
