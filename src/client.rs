@@ -61,7 +61,25 @@ impl CesfoClient {
         let mut verified = false;
         if let Some(left_elem) = document.select(&left_selector).next() {
             let left_text = left_elem.text().collect::<String>().to_lowercase();
-            let expected_name = creds.badge_nom.to_lowercase();
+            let expected_name = creds.badge_nom
+                .to_lowercase()
+                .replace("à", "a")
+                .replace("â", "a")
+                .replace("é", "e")
+                .replace("è", "e")
+                .replace("ê", "e")
+                .replace("ë", "e")
+                .replace("î", "i")
+                .replace("ï", "i")
+                .replace("ô", "o")
+                .replace("ö", "o")
+                .replace("ù", "u")
+                .replace("û", "u")
+                .replace("ü", "u")
+                .replace("ç", "c")
+                .replace("ÿ", "y")
+                .replace("œ", "oe")
+                .replace("æ", "ae");
             let expected_badge = &creds.badge_number;
 
             if left_text.contains(&expected_name) && left_text.contains(expected_badge) {

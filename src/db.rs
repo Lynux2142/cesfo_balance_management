@@ -42,13 +42,18 @@ impl DatabaseService {
         Ok(account)
     }
 
-    pub async fn get_latest_account_info(&self, badge_number: &str) -> Result<Option<AccountInfo>, Box<dyn std::error::Error>> {
+    pub async fn get_latest_account_info(&self, badge_number: &str, before_date: &str) -> Result<Option<AccountInfo>, Box<dyn std::error::Error>> {
+        let filter = doc! {
+            "badge_number": badge_number,
+            "balance_date": { "$lt": before_date }
+        };
+
         let options = mongodb::options::FindOneOptions::builder()
             .sort(doc! { "balance_date": -1 })
             .build();
 
         let latest = self.balances_collection
-            .find_one(doc! { "badge_number": badge_number })
+            .find_one(filter)
             .with_options(options)
             .await?;
         Ok(latest)
@@ -91,7 +96,7 @@ impl DatabaseService {
 
     pub async fn save_account_info(&self, mut info: AccountInfo) -> Result<(), Box<dyn std::error::Error>> {
         println!("[DB] Saving account info into MongoDB...");
-        let previous_record = self.get_latest_account_info(&info.badge_number).await?;
+        let previous_record = self.get_latest_account_info(&info.badge_number, &info.balance_date).await?;
 
         let (previous_balance, previous_pending) = match &previous_record {
             Some(last) => (last.balance, last.pending_payment),
